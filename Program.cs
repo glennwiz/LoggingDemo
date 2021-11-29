@@ -18,6 +18,9 @@ namespace LoggingDemo
             Host.CreateDefaultBuilder(args)
                 .ConfigureServices((hostContext, services) =>
                 {
+                    //add serilog to services
+                    
+                    
                     services.AddHostedService<Worker>();
                 });
     }
