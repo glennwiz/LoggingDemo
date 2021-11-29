@@ -16,13 +16,14 @@ namespace LoggingDemo
     
     public class Worker : BackgroundService
     {
-        private readonly ILogger<Worker> _logger;
+        private readonly ILogger<Worker> logger;
 
         //Dictionary with random string messages
-        private static Dictionary<int, string> messages = new Dictionary<int, string>();
+        private static readonly Dictionary<int, string> messages = new();
        
+        List<int> ListOfNegativeMessages = new();
         
-        
+
         public Worker(ILogger<Worker> logger)
         {
             messages.Add(1, "This is a test message");
@@ -39,47 +40,71 @@ namespace LoggingDemo
             messages.Add(12, "Script is Stopping");
             messages.Add(13, "Users was deleted");
             
-            
-            _logger = logger;
+            ListOfNegativeMessages.Add(2);
+            ListOfNegativeMessages.Add(5);
+            ListOfNegativeMessages.Add(8);
+
+            this.logger = logger;
             
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console()
                 //.WriteTo.File(@"C:\test\log-.txt", rollingInterval: RollingInterval.Day)
-                //.WriteTo.Seq("http://localhost:8881")
+                .WriteTo.Seq("http://localhost:8081")
                 .CreateLogger();
-
-            
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                //print random message
+                //set random message
                 var rnd = new Random();
-                var message = messages[rnd.Next(1, 14)];
-                Console.ForegroundColor = (ConsoleColor)new Random().Next(1, 15);
-                Console.WriteLine(message);
+                var value = rnd.Next(1, 14);
+                
+                var message = messages[value];
+                
+                if(ListOfNegativeMessages.Contains(value))
+                {
+                    Log.Error(message);
+                }
+                else
+                {
+                    if (value == 13)
+                    {
+                        Log.Information("Users was deleted {UsersDeleted}", rnd.Next(1, 100));
+                        
+                    }
+                    Log.Information(message);
+                }
+                
+                
+                
+                //console write
+                // Console.ForegroundColor = (ConsoleColor)new Random().Next(1, 15);
+                // Console.WriteLine($"{message} - {new Random().Next(0, 100)}");
+                
+                
+                
                 
                 
                 //serilog
-                Log.Information("Information");
-                Log.Debug("Debug");
-                Log.Fatal("Fatal");
-                Log.Verbose("Verbose");
+                // Log.Information("Information");
+                // Log.Debug("Debug");
+                // Log.Fatal("Fatal");
+                // Log.Verbose("Verbose");
                 
-                //console write
-                Console.ForegroundColor = (ConsoleColor)new Random().Next(1, 15);
-                Console.WriteLine($"{DateTime.Now} - {new Random().Next(0, 100)}");
+                
                 
                 //default logger
-                _logger.LogDebug($"{DateTime.Now} - {new Random().Next(0, 100)}");
-                _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                
+                // _logger.LogDebug($"{DateTime.Now} - {new Random().Next(0, 100)}");
+                // _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                //
                 await Task.Delay(1000, stoppingToken);
                 
                 //spin up a SEQ server
-                docker -d run -p 8081:8081 -p 514:514 -d seq/seq:latest
+                //docker run --name seq -d --restart unless-stopped -e ACCEPT_EULA=Y -p 8081:80 datalust/seq:latest 
+                
+                
                 
             }
         }
